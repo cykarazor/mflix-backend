@@ -18,11 +18,30 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log("✅ MongoDB connected"))
 .catch((err) => console.log("❌ DB Error:", err));
 
-// Movies route
+// Movies route with pagination
 app.get("/api/movies", async (req, res) => {
-  const db = mongoose.connection.db;
-  const movies = await db.collection("movies").find().limit(10).toArray();
-  res.json(movies);
+  try {
+    const db = mongoose.connection.db;
+    const moviesCollection = db.collection("movies");
+
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
+
+    const totalMovies = await moviesCollection.countDocuments();
+    const totalPages = Math.ceil(totalMovies / limit);
+
+    const movies = await moviesCollection.find({})
+      .project({ title: 1, year: 1 }) // Optional: only include needed fields
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+
+    res.json({ movies, totalPages });
+  } catch (error) {
+    console.error("Error fetching movies:", error);
+    res.status(500).json({ error: "Failed to fetch movies" });
+  }
 });
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
