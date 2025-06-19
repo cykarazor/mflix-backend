@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const { ObjectId } = require("mongodb"); // <-- added this line here
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -51,6 +52,35 @@ app.get("/api/movies", async (req, res) => {
   } catch (error) {
     console.error("Error fetching movies:", error);
     res.status(500).json({ error: "Failed to fetch movies" });
+  }
+});
+
+// PUT update movie details by _id
+app.put("/api/movies/:id", async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    const collection = db.collection("movies");
+
+    const movieId = req.params.id;
+    const updateData = req.body; // expects an object with fields to update, e.g. { title: "New Title", year: 2023 }
+
+    if (!ObjectId.isValid(movieId)) {
+      return res.status(400).json({ error: "Invalid movie ID" });
+    }
+
+    const result = await collection.updateOne(
+      { _id: new ObjectId(movieId) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "Movie not found" });
+    }
+
+    res.json({ message: "Movie updated successfully" });
+  } catch (error) {
+    console.error("Error updating movie:", error);
+    res.status(500).json({ error: "Failed to update movie" });
   }
 });
 
