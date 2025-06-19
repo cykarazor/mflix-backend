@@ -18,36 +18,26 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log("✅ MongoDB connected"))
 .catch((err) => console.log("❌ DB Error:", err));
 
-// Movies route with pagination, search, and sorting
+// Movies route with pagination
 app.get("/api/movies", async (req, res) => {
   try {
     const db = mongoose.connection.db;
-    const collection = db.collection("movies");
+    const moviesCollection = db.collection("movies");
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || '';
-    const sortBy = req.query.sortBy || 'title';
-    const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
 
-    const query = search
-      ? { title: { $regex: search, $options: 'i' } }
-      : {};
-
-    const totalMovies = await collection.countDocuments(query);
+    const totalMovies = await moviesCollection.countDocuments();
     const totalPages = Math.ceil(totalMovies / limit);
 
-    const movies = await collection
-      .find(query)
-      .sort({ [sortBy]: sortOrder })
-      .skip((page - 1) * limit)
+    const movies = await moviesCollection.find({})
+      .project({ title: 1, year: 1 }) // Optional: only include needed fields
+      .skip(skip)
       .limit(limit)
       .toArray();
 
-    res.json({
-      movies,
-      totalPages,
-    });
+    res.json({ movies, totalPages });
   } catch (error) {
     console.error("Error fetching movies:", error);
     res.status(500).json({ error: "Failed to fetch movies" });
