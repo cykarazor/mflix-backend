@@ -141,6 +141,41 @@ function App() {
 
       {/* Pagination buttons (same as before) */}
       {/* ... your pagination buttons code here ... */}
+{totalPages > 1 && (
+  <Stack direction="row" spacing={2} justifyContent="center" sx={{ my: 4 }}>
+    <Button
+      variant="outlined"
+      onClick={() => setPage(1)}
+      disabled={page === 1}
+    >
+      First
+    </Button>
+    <Button
+      variant="outlined"
+      onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+      disabled={page === 1}
+    >
+      Prev
+    </Button>
+    <Typography variant="body1" sx={{ alignSelf: 'center' }}>
+      Page {page} of {totalPages}
+    </Typography>
+    <Button
+      variant="outlined"
+      onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+      disabled={page === totalPages}
+    >
+      Next
+    </Button>
+    <Button
+      variant="outlined"
+      onClick={() => setPage(totalPages)}
+      disabled={page === totalPages}
+    >
+      Last
+    </Button>
+  </Stack>
+)}
 
       {/* Edit Movie Modal */}
       <Dialog open={!!editMovieId} onClose={handleCloseEditModal} maxWidth="sm" fullWidth>
