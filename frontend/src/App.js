@@ -77,4 +77,110 @@ function App() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 6 }}>
-      <Typography v
+      <Typography variant="h4" gutterBottom align="center">
+        🎬 Mflix Movies
+      </Typography>
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+        <TextField
+          label="Search"
+          variant="outlined"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          fullWidth
+        />
+
+        <TextField
+          select
+          label="Sort By"
+          value={sort}
+          onChange={(e) => {
+            setSort(e.target.value);
+            setPage(1);
+          }}
+          sx={{ minWidth: 150 }}
+        >
+          {sortOptions.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+
+      {loading && (
+        <Stack alignItems="center" sx={{ my: 4 }}>
+          <CircularProgress />
+        </Stack>
+      )}
+
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
+
+      {!loading && !error && movies.length === 0 && (
+        <Typography align="center">No movies found.</Typography>
+      )}
+
+      {!loading && !error && movies.length > 0 && (
+        <List>
+          {movies.map((movie) => (
+            <ListItem key={movie._id} divider>
+              <ListItemIcon>
+                <MovieIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={movie.title}
+                secondary={movie.year ? `Year: ${movie.year}` : 'Unknown Year'}
+              />
+            </ListItem>
+          ))}
+        </List>
+      )}
+
+      <Box sx={{ mt: 3 }}>
+        <Stack direction="row" spacing={1} justifyContent="center">
+          <Button
+            variant="outlined"
+            onClick={() => setPage(1)}
+            disabled={page === 1}
+            startIcon={<FirstPageIcon />}
+          >
+            First
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+            startIcon={<NavigateBeforeIcon />}
+          >
+            Prev
+          </Button>
+          <Typography variant="body1" sx={{ alignSelf: 'center', mx: 2 }}>
+            Page {page} of {totalPages}
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={() => setPage(page + 1)}
+            disabled={page === totalPages}
+            endIcon={<NavigateNextIcon />}
+          >
+            Next
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setPage(totalPages)}
+            disabled={page === totalPages}
+            endIcon={<LastPageIcon />}
+          >
+            Last
+          </Button>
+        </Stack>
+      </Box>
+    </Container>
+  );
+}
+
+export default App;
