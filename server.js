@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const { ObjectId } = require("mongodb"); // <-- added this line here
+const { ObjectId } = require("mongodb");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,7 +19,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log("✅ MongoDB connected"))
 .catch((err) => console.log("❌ DB Error:", err));
 
-// Movies route with pagination, search, and sorting
+// GET movies with pagination, search, and sorting
 app.get("/api/movies", async (req, res) => {
   try {
     const db = mongoose.connection.db;
@@ -45,13 +45,35 @@ app.get("/api/movies", async (req, res) => {
       .limit(limit)
       .toArray();
 
-    res.json({
-      movies,
-      totalPages,
-    });
+    res.json({ movies, totalPages });
   } catch (error) {
     console.error("Error fetching movies:", error);
     res.status(500).json({ error: "Failed to fetch movies" });
+  }
+});
+
+// ✅ GET a single movie by ID
+app.get("/api/movies/:id", async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    const collection = db.collection("movies");
+
+    const movieId = req.params.id;
+
+    if (!ObjectId.isValid(movieId)) {
+      return res.status(400).json({ error: "Invalid movie ID" });
+    }
+
+    const movie = await collection.findOne({ _id: new ObjectId(movieId) });
+
+    if (!movie) {
+      return res.status(404).json({ error: "Movie not found" });
+    }
+
+    res.json(movie);
+  } catch (error) {
+    console.error("Error fetching movie by ID:", error);
+    res.status(500).json({ error: "Failed to fetch movie" });
   }
 });
 
@@ -62,7 +84,7 @@ app.put("/api/movies/:id", async (req, res) => {
     const collection = db.collection("movies");
 
     const movieId = req.params.id;
-    const updateData = req.body; // expects an object with fields to update, e.g. { title: "New Title", year: 2023 }
+    const updateData = req.body;
 
     if (!ObjectId.isValid(movieId)) {
       return res.status(400).json({ error: "Invalid movie ID" });
