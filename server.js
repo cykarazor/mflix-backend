@@ -19,6 +19,10 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log("✅ MongoDB connected"))
 .catch((err) => console.log("❌ DB Error:", err));
 
+// ✅ Auth routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 // GET movies with pagination, search, and sorting
 app.get("/api/movies", async (req, res) => {
   try {
