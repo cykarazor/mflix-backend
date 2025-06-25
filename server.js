@@ -1,5 +1,12 @@
 // backend/server.js
-require("dotenv").config();
+require('dotenv').config(); // Ensure this is at the very top
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error('❌ JWT_SECRET is not defined in your environment!');
+  process.exit(1);
+}
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
