@@ -9,15 +9,21 @@ const JWT_SECRET  = process.env.JWT_SECRET;
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const exists = await SampleUser.findOne({ email });
-    if (exists) return res.status(400).json({ error: 'Email already exists' });
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const newUser = new SampleUser({ name, email, password: hashedPassword });
+    const exists = await SampleUser.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+
+    // ❌ Do NOT hash here. Let the pre-save hook handle it.
+    const newUser = new SampleUser({ name, email, password });
+
     await newUser.save();
+
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Registration error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -26,10 +32,10 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await SampleUser.findOne({ email });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) return res.status(401).json({ error: 'Invalid Email' });
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!match) return res.status(401).json({ error: 'Invalid Password' });
 
     const token = jwt.sign(
       { userId: user._id, name: user.name, email: user.email },
