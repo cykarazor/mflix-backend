@@ -1,16 +1,17 @@
 // backend/server.js
-require('dotenv').config(); // Ensure this is at the very top
+require('dotenv').config();
+
+const express    = require('express');
+const mongoose   = require('mongoose');
+const cors       = require('cors');
+const { ObjectId } = require('mongodb');
+const authRoutes = require('./routes/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET;
-
 if (!JWT_SECRET) {
   console.error('❌ JWT_SECRET is not defined in your environment!');
   process.exit(1);
 }
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const { ObjectId } = require("mongodb");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,16 +25,16 @@ mongoose.connect(process.env.MONGODB_URI, {
   useUnifiedTopology: true,
 })
 .then(() => console.log("✅ MongoDB connected"))
-.catch((err) => console.log("❌ DB Error:", err));
+.catch((err) => console.error("❌ DB Error:", err));
 
-// ✅ Auth routes
-const authRoutes = require('./routes/auth');
+const db = mongoose.connection.db;
+
+// Routes
 app.use('/api/auth', authRoutes);
 
-// GET movies with pagination, search, and sorting
+// Movies: GET list
 app.get("/api/movies", async (req, res) => {
   try {
-    const db = mongoose.connection.db;
     const collection = db.collection("movies");
 
     const page = parseInt(req.query.page) || 1;
@@ -63,10 +64,9 @@ app.get("/api/movies", async (req, res) => {
   }
 });
 
-// ✅ GET a single movie by ID
+// Movies: GET one
 app.get("/api/movies/:id", async (req, res) => {
   try {
-    const db = mongoose.connection.db;
     const collection = db.collection("movies");
 
     const movieId = req.params.id;
@@ -88,10 +88,9 @@ app.get("/api/movies/:id", async (req, res) => {
   }
 });
 
-// PUT update movie details by _id
+// Movies: PUT update
 app.put("/api/movies/:id", async (req, res) => {
   try {
-    const db = mongoose.connection.db;
     const collection = db.collection("movies");
 
     const movieId = req.params.id;
