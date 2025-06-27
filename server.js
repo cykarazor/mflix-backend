@@ -141,6 +141,8 @@ app.put('/api/movies/:id', async (req, res) => {
 });
 
 // GET /api/comments?movie_id=...
+const { ObjectId } = require('mongodb'); // make sure this is at the top
+
 app.get('/api/comments', async (req, res) => {
   const movieId = req.query.movie_id;
   if (!movieId) {
@@ -148,9 +150,13 @@ app.get('/api/comments', async (req, res) => {
   }
 
   try {
-    const db = connection.db;  // <--- Add this line here
-    
-    const comments = await db.collection('comments').find({ movie_id: movieId }).toArray();
+    const db = connection.db;
+
+    // Convert movieId string to ObjectId for proper matching
+    const comments = await db.collection('comments').find({
+      movie_id: new ObjectId(movieId),
+    }).toArray();
+
     res.json(comments);
   } catch (err) {
     console.error('Failed to fetch comments:', err);
