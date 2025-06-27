@@ -140,6 +140,23 @@ app.put('/api/movies/:id', async (req, res) => {
   }
 });
 
+// GET /api/comments?movie_id=...
+app.get('/api/comments', async (req, res) => {
+  const movieId = req.query.movie_id;
+  if (!movieId) {
+    return res.status(400).json({ error: 'Missing movie_id query parameter' });
+  }
+
+  try {
+    const comments = await db.collection('comments').find({ movie_id: movieId }).toArray();
+    res.json(comments);
+  } catch (err) {
+    console.error('Failed to fetch comments:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 // ✅ Start the server immediately (not delayed by DB connection)
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
