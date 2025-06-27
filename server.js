@@ -141,7 +141,6 @@ app.put('/api/movies/:id', async (req, res) => {
 });
 
 // GET /api/comments?movie_id=...
-const { ObjectId } = require('mongodb'); // make sure this is at the top
 
 app.get('/api/comments', async (req, res) => {
   const movieId = req.query.movie_id;
