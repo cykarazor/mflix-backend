@@ -35,15 +35,25 @@ connection.once('open', () => {
   // Auth routes
   app.use('/api/auth', authRoutes);
 
-  // GET movies
+  // GET movies with multi-field sorting support << MODIFIED
   app.get('/api/movies', async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const search = req.query.search || '';
-      const sortBy = req.query.sortBy || 'title';
-      const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+      const sortBy = req.query.sortBy || 'title'; // e.g. 'year,title' << NEW
+      const sortOrder = req.query.sortOrder || 'asc'; // e.g. 'desc,asc' << NEW
 
+      // Build MongoDB sort object from comma-separated lists << NEW
+      const sortFields = sortBy.split(',');
+      const sortDirections = sortOrder.split(',');
+      const sort = {};
+      sortFields.forEach((field, idx) => {
+        const direction = sortDirections[idx] || 'asc';
+        sort[field] = direction.toLowerCase() === 'desc' ? -1 : 1;
+      });
+
+      // Search filter: case-insensitive regex on title (can be enhanced later) << MODIFIED
       const query = search
         ? { title: { $regex: search, $options: 'i' } }
         : {};
@@ -51,9 +61,10 @@ connection.once('open', () => {
       const totalMovies = await collection.countDocuments(query);
       const totalPages = Math.ceil(totalMovies / limit);
 
+      // Use multi-field sort object in the find query << MODIFIED
       const movies = await collection
         .find(query)
-        .sort({ [sortBy]: sortOrder })
+        .sort(sort)  // << CHANGED from single-field sort to multi-field sort
         .skip((page - 1) * limit)
         .limit(limit)
         .toArray();
