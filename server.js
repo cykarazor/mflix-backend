@@ -19,7 +19,7 @@ app.use(express.json());
 
 // ✅ Connect to MongoDB (no deprecated options)
 mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
+  //useNewUrlParser: true,
   // ❌ Removed: useUnifiedTopology (no longer needed in Mongoose v6+)
 });
 
