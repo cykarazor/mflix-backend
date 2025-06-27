@@ -71,8 +71,9 @@ app.get('/api/movies', async (req, res) => {
     const totalPages = Math.ceil(totalMovies / limit);
 
     const movies = await collection
-      .find(query, { allowDiskUse: true })  // 👈 Add this to enable disk-based sort
+      .find(query)
       .sort(sort)
+      .allowDiskUse(true) // ✅ Prevents memory limit crash
       .skip((page - 1) * limit)
       .limit(limit)
       .toArray();
