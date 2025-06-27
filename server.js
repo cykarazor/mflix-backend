@@ -148,6 +148,8 @@ app.get('/api/comments', async (req, res) => {
   }
 
   try {
+    const db = connection.db;  // <--- Add this line here
+    
     const comments = await db.collection('comments').find({ movie_id: movieId }).toArray();
     res.json(comments);
   } catch (err) {
