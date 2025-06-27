@@ -17,118 +17,128 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
+// ✅ Connect to MongoDB (no deprecated options)
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true,
+  // ❌ Removed: useUnifiedTopology (no longer needed in Mongoose v6+)
 });
 
+// 🔄 MongoDB connection event listeners
 const connection = mongoose.connection;
 
-// Wait for MongoDB to be fully connected
-connection.once('open', () => {
+connection.on('connected', () => {
   console.log('✅ MongoDB connected');
-
-  const db = connection.db;
-  const collection = db.collection('movies');
-
-  // Auth routes
-  app.use('/api/auth', authRoutes);
-
-  // GET movies with multi-field sorting support << MODIFIED
-  app.get('/api/movies', async (req, res) => {
-    try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const search = req.query.search || '';
-      const sortBy = req.query.sortBy || 'title'; // e.g. 'year,title' << NEW
-      const sortOrder = req.query.sortOrder || 'asc'; // e.g. 'desc,asc' << NEW
-
-      // Build MongoDB sort object from comma-separated lists << NEW
-      const sortFields = sortBy.split(',');
-      const sortDirections = sortOrder.split(',');
-      const sort = {};
-      sortFields.forEach((field, idx) => {
-        const direction = sortDirections[idx] || 'asc';
-        sort[field] = direction.toLowerCase() === 'desc' ? -1 : 1;
-      });
-
-      // Search filter: case-insensitive regex on title (can be enhanced later) << MODIFIED
-      const query = search
-        ? { title: { $regex: search, $options: 'i' } }
-        : {};
-
-      const totalMovies = await collection.countDocuments(query);
-      const totalPages = Math.ceil(totalMovies / limit);
-
-      // Use multi-field sort object in the find query << MODIFIED
-      const movies = await collection
-        .find(query)
-        .sort(sort)  // << CHANGED from single-field sort to multi-field sort
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .toArray();
-
-      res.json({ movies, totalPages });
-    } catch (error) {
-      console.error('Error fetching movies:', error);
-      res.status(500).json({ error: 'Failed to fetch movies' });
-    }
-  });
-
-  // GET movie by ID
-  app.get('/api/movies/:id', async (req, res) => {
-    try {
-      const movieId = req.params.id;
-
-      if (!ObjectId.isValid(movieId)) {
-        return res.status(400).json({ error: 'Invalid movie ID' });
-      }
-
-      const movie = await collection.findOne({ _id: new ObjectId(movieId) });
-
-      if (!movie) {
-        return res.status(404).json({ error: 'Movie not found' });
-      }
-
-      res.json(movie);
-    } catch (error) {
-      console.error('Error fetching movie by ID:', error);
-      res.status(500).json({ error: 'Failed to fetch movie' });
-    }
-  });
-
-  // PUT update movie
-  app.put('/api/movies/:id', async (req, res) => {
-    try {
-      const movieId = req.params.id;
-      const updateData = req.body;
-
-      if (!ObjectId.isValid(movieId)) {
-        return res.status(400).json({ error: 'Invalid movie ID' });
-      }
-
-      const result = await collection.updateOne(
-        { _id: new ObjectId(movieId) },
-        { $set: updateData }
-      );
-
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ error: 'Movie not found' });
-      }
-
-      res.json({ message: 'Movie updated successfully' });
-    } catch (error) {
-      console.error('Error updating movie:', error);
-      res.status(500).json({ error: 'Failed to update movie' });
-    }
-  });
-
-  // Start server after DB is ready
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 });
 
-// Handle DB connection errors
 connection.on('error', (err) => {
   console.error('❌ MongoDB connection error:', err);
+});
+
+// ✅ Add health check endpoint so Render knows the service is alive
+app.get('/', (req, res) => {
+  res.send('🌐 API is running');
+});
+
+// ✅ Auth routes
+app.use('/api/auth', authRoutes);
+
+// ✅ GET movies with multi-field sorting, pagination, and search
+app.get('/api/movies', async (req, res) => {
+  try {
+    const db = connection.db;
+    const collection = db.collection('movies');
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const sortBy = req.query.sortBy || 'title';
+    const sortOrder = req.query.sortOrder || 'asc';
+
+    const sortFields = sortBy.split(',');
+    const sortDirections = sortOrder.split(',');
+    const sort = {};
+
+    sortFields.forEach((field, idx) => {
+      const direction = sortDirections[idx] || 'asc';
+      sort[field] = direction.toLowerCase() === 'desc' ? -1 : 1;
+    });
+
+    const query = search
+      ? { title: { $regex: search, $options: 'i' } }
+      : {};
+
+    const totalMovies = await collection.countDocuments(query);
+    const totalPages = Math.ceil(totalMovies / limit);
+
+    const movies = await collection
+      .find(query)
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    res.json({ movies, totalPages });
+  } catch (error) {
+    console.error('Error fetching movies:', error);
+    res.status(500).json({ error: 'Failed to fetch movies' });
+  }
+});
+
+// ✅ GET movie by ID
+app.get('/api/movies/:id', async (req, res) => {
+  try {
+    const db = connection.db;
+    const collection = db.collection('movies');
+
+    const movieId = req.params.id;
+
+    if (!ObjectId.isValid(movieId)) {
+      return res.status(400).json({ error: 'Invalid movie ID' });
+    }
+
+    const movie = await collection.findOne({ _id: new ObjectId(movieId) });
+
+    if (!movie) {
+      return res.status(404).json({ error: 'Movie not found' });
+    }
+
+    res.json(movie);
+  } catch (error) {
+    console.error('Error fetching movie by ID:', error);
+    res.status(500).json({ error: 'Failed to fetch movie' });
+  }
+});
+
+// ✅ PUT update movie
+app.put('/api/movies/:id', async (req, res) => {
+  try {
+    const db = connection.db;
+    const collection = db.collection('movies');
+
+    const movieId = req.params.id;
+    const updateData = req.body;
+
+    if (!ObjectId.isValid(movieId)) {
+      return res.status(400).json({ error: 'Invalid movie ID' });
+    }
+
+    const result = await collection.updateOne(
+      { _id: new ObjectId(movieId) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Movie not found' });
+    }
+
+    res.json({ message: 'Movie updated successfully' });
+  } catch (error) {
+    console.error('Error updating movie:', error);
+    res.status(500).json({ error: 'Failed to update movie' });
+  }
+});
+
+// ✅ Start the server immediately (not delayed by DB connection)
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
