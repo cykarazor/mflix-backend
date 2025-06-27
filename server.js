@@ -71,11 +71,12 @@ app.get('/api/movies', async (req, res) => {
     const totalPages = Math.ceil(totalMovies / limit);
 
     const movies = await collection
-      .find(query)
-      .sort(sort)
-      .allowDiskUse(true) // ✅ Prevents memory limit crash
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .aggregate([
+        { $match: query },
+        { $sort: sort },
+        { $skip: (page - 1) * limit },
+        { $limit: limit }
+      ], { allowDiskUse: true }) // ✅ REAL FIX — must go here
       .toArray();
 
     res.json({ movies, totalPages });
